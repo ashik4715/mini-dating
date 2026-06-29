@@ -93,7 +93,7 @@ export default function AdminPage() {
     }
   };
 
-  const sendReminder = async (date: DateRequest) => {
+  const sendMessageNow = async (date: DateRequest) => {
     try {
       const res = await fetch('/api/telegram', {
         method: 'POST',
@@ -103,17 +103,17 @@ export default function AdminPage() {
           date: date.date,
           time: date.time,
           food: date.food,
-          type: 'reminder',
+          type: 'confirmation',
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setMessage('Reminder sent!');
+        setMessage('Message sent! ✅');
       } else {
-        setMessage(data.error || 'Failed to send reminder');
+        setMessage(data.needsBotStart ? 'User must start the bot first: t.me/mini_dating_bot' : (data.error || 'Failed'));
       }
     } catch (error) {
-      console.error('Error sending reminder:', error);
+      console.error('Error sending message:', error);
     }
   };
 
@@ -314,10 +314,11 @@ export default function AdminPage() {
                             </button>
                             {date.phone && (
                               <button
-                                onClick={() => sendReminder(date)}
+                                onClick={() => sendMessageNow(date)}
                                 className="text-green-600 hover:text-green-800 mr-2"
+                                title="Message Now"
                               >
-                                📨
+                                💬
                               </button>
                             )}
                             <button
