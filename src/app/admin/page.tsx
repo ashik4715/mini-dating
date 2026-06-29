@@ -27,10 +27,11 @@ export default function AdminPage() {
   const [telegramConnected, setTelegramConnected] = useState(false);
   const [setupPhone, setSetupPhone] = useState('');
   const [setupCode, setSetupCode] = useState('');
-  const [step, setStep] = useState<'idle' | 'sent' | 'done'>('idle');
+  const [step, setStep] = useState<'idle' | 'sent' | '2fa' | 'done'>('idle');
   const [tgLoading, setTgLoading] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [twoFAPassword, setTwoFAPassword] = useState('');
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -136,15 +137,43 @@ export default function AdminPage() {
         setCodeExpiry(null);
         setMessage('Telegram connected!');
       } else {
-        setMessage(data.error);
-        if (data.error?.toLowerCase().includes('expired')) {
-          setSetupCode('');
+        if (data.error === '2FA_ENABLED') {
+          setStep('2fa');
           setCodeExpiry(null);
-          setStep('idle');
+          setMessage('2FA required. Enter your Telegram cloud password.');
+        } else {
+          setMessage(data.error);
+          if (data.error?.toLowerCase().includes('expired')) {
+            setSetupCode('');
+            setCodeExpiry(null);
+            setStep('idle');
+          }
         }
       }
     } catch {
       setMessage('Verification failed');
+    }
+    setTgLoading(false);
+  };
+
+  const handle2FA = async () => {
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/telegram/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: twoFAPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTelegramConnected(true);
+        setStep('done');
+        setMessage('Telegram connected!');
+      } else {
+        setMessage(data.error);
+      }
+    } catch {
+      setMessage('2FA verification failed');
     }
     setTgLoading(false);
   };
@@ -327,6 +356,31 @@ export default function AdminPage() {
                   {tgLoading ? '...' : step === 'sent' ? 'Resend' : 'Send Code'}
                 </button>
               </div>
+              {step === '2fa' && (
+                <div className="space-y-2 animate-[fadeIn_0.3s_ease-in]">
+                  <p className="text-sm text-amber-600 font-medium">
+                    Your Telegram account has 2FA enabled. Enter your cloud password to complete login.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={twoFAPassword}
+                      onChange={(e) => setTwoFAPassword(e.target.value)}
+                      placeholder="Telegram cloud password"
+                      className="flex-1 px-4 py-2 border-2 border-amber-300 rounded-xl focus:border-amber-400 focus:outline-none"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && twoFAPassword && handle2FA()}
+                    />
+                    <button
+                      onClick={handle2FA}
+                      disabled={tgLoading || !twoFAPassword}
+                      className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {tgLoading ? '...' : 'Confirm'}
+                    </button>
+                  </div>
+                </div>
+              )}
               {step === 'sent' && (
                 <div className="space-y-2 animate-[fadeIn_0.3s_ease-in]">
                   <div className="flex gap-2">

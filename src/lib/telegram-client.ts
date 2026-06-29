@@ -1,5 +1,6 @@
 import { TelegramClient, Api } from 'telegram';
 import { StringSession } from 'telegram/sessions';
+import { computeCheck } from 'telegram/Password';
 import { getDatabase } from './mongodb';
 
 const apiId = parseInt(process.env.TELEGRAM_API_ID || '0');
@@ -157,6 +158,53 @@ export async function verifyCode(phone: string, code: string, phoneCodeHash?: st
   }
 }
 
+export async function verify2FA(password: string): Promise<string> {
+  const db = await getDatabase();
+  const pending = await db.collection('telegram_sessions').findOne({ key: 'setup_pending' });
+
+  if (!pending || !pending.needs2FA) {
+    throw new Error('No pending 2FA verification. Start over with Send Code.');
+  }
+
+  const sessionString = pending.sessionString || '';
+  const client = new TelegramClient(new StringSession(sessionString), apiId, apiHash, {});
+  await client.connect();
+
+  try {
+    const pwdInfo = await client.invoke(new Api.account.GetPassword());
+
+    const passwordSrp = await computeCheck(pwdInfo, password);
+
+    await client.invoke(
+      new Api.auth.CheckPassword({
+        password: passwordSrp,
+      })
+    );
+
+    const finalSession = client.session.save() as unknown as string;
+
+    await db.collection('telegram_sessions').deleteOne({ key: 'setup_pending' });
+    await db.collection('telegram_sessions').updateOne(
+      { key: 'userbot' },
+      { $set: { key: 'userbot', session: finalSession, createdAt: new Date() } },
+      { upsert: true }
+    );
+
+    clientInstance = null;
+    client.disconnect();
+
+    return finalSession;
+  } catch (e: unknown) {
+    const err = e as Error & { errorMessage?: string };
+    client.disconnect();
+
+    if (err.errorMessage?.includes('PASSWORD_HASH_INVALID')) {
+      throw new Error('Wrong 2FA password. Please try again.');
+    }
+    throw new Error(err.message || '2FA verification failed');
+  }
+}
+
 export async function getStoredSetupData(): Promise<{ phone: string; phoneCodeHash: string; expiresAt?: number } | null> {
   try {
     const db = await getDatabase();
@@ -191,6 +239,22 @@ export async function getUserbotStatus(): Promise<{ connected: boolean; phone?: 
 
 export async function sendTelegramMessage(phone: string, message: string): Promise<boolean> {
   const client = await getClient();
-  const result = await client.sendMessage(phone, { message });
-  return !!result;
+
+  try {
+    const resolved = await client.invoke(
+      new Api.contacts.ResolvePhone({ phone })
+    );
+    const entity = resolved.users[0];
+    if (!entity) {
+      throw new Error('Could not resolve phone number. User may not have Telegram or privacy settings block contacts.');
+    }
+    await client.sendMessage(entity, { message });
+    return true;
+  } catch (e: unknown) {
+    const err = e as Error;
+    if (err.message?.includes('PHONE_NOT_OCCUPIED')) {
+      throw new Error('This phone number is not registered on Telegram.');
+    }
+    throw new Error(err.message || 'Failed to send message');
+  }
 }
