@@ -112,7 +112,15 @@ export default function PhoneInput({ onConfirm, onBack }: PhoneInputProps) {
       return;
     }
 
-    const fullNumber = `${selectedCode}${phone}`;
+    const codeDigits = selectedCode.replace('+', '');
+    let fullNumber = phone;
+
+    if (!phone.startsWith(codeDigits)) {
+      fullNumber = `${selectedCode}${phone}`;
+    } else {
+      fullNumber = `+${phone}`;
+    }
+
     onConfirm(fullNumber);
   };
 
