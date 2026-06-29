@@ -5,7 +5,7 @@ import { DateRequest } from '@/types';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, date, time, food, phone, status } = body;
+    const { name, chatId, date, time, food, phone, status } = body;
 
     if (!date || !time || !food || !status) {
       return NextResponse.json(
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
 
     const dateRequest: DateRequest = {
       name: name || undefined,
+      chatId: chatId || undefined,
       date: new Date(date),
       time,
       food,

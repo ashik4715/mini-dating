@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendTelegramMessage } from '@/lib/telegram-client';
+import { sendBotMessage } from '@/lib/bot-api';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
@@ -24,11 +24,11 @@ function getFoodEmoji(food: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, date, time, food, type } = body;
+    const { chatId, date, time, food, type } = body;
 
-    if (!phone || !date || !time || !food) {
+    if (!chatId || !date || !time || !food) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields (chatId, date, time, food)' },
         { status: 400 }
       );
     }
@@ -37,36 +37,20 @@ export async function POST(request: Request) {
     let message = '';
 
     if (type === 'confirmation') {
-      message = `🎉 Date Confirmed!\n\n📅 Day: ${formatDate(dateObj)}\n⏰ Time: ${time}\n${getFoodEmoji(food)} Food: ${food}\n\nSee you there! 💕`;
+      message = `🎉 <b>Date Confirmed!</b>\n\n📅 Day: ${formatDate(dateObj)}\n⏰ Time: ${time}\n${getFoodEmoji(food)} Food: ${food}\n\nSee you there! 💕`;
     } else if (type === 'reminder') {
       const diffMs = dateObj.getTime() - Date.now();
       const diffMins = Math.round(diffMs / 60000);
 
-      message = `⏰ Reminder: ${diffMins} Minutes Remaining!\n\nYour date is in ${diffMins} minutes:\n📅 ${formatDate(dateObj)}\n⏰ ${time}\n${getFoodEmoji(food)} ${food}\n\nDon't be late! 💕`;
+      message = `⏰ <b>Reminder: ${diffMins} Minutes Remaining!</b>\n\nYour date is in ${diffMins} minutes:\n📅 ${formatDate(dateObj)}\n⏰ ${time}\n${getFoodEmoji(food)} ${food}\n\nDon't be late! 💕`;
     }
 
     try {
-      await sendTelegramMessage(phone.replace('+', ''), message);
+      await sendBotMessage(Number(chatId), message);
       return NextResponse.json({ success: true });
     } catch (e: unknown) {
-      const err = e as Error & { errorMessage?: string };
-      let errorMsg = 'Could not send message.';
-
-      if (err.message?.includes('USER_PRIVACY_RESTRICTED') || err.message?.includes('SendPrivate')) {
-        errorMsg = 'Recipient has privacy settings blocking non-contacts. Ask them to change: Telegram → Settings → Privacy → Messages → Allow from Everybody.';
-      } else if (err.message?.includes('USER_IS_BLOCKED') || err.message?.includes('UserBlocked')) {
-        errorMsg = 'User has blocked this account.';
-      } else if (err.message?.includes('USER_NOT_PARTICIPANT')) {
-        errorMsg = 'User has restricted who can send them messages.';
-      } else if (err.message?.includes('Session') || err.message?.includes('session')) {
-        errorMsg = 'Userbot session expired. Please re-connect in Admin → Telegram Bot section.';
-      } else if (err.message?.includes('FLOOD')) {
-        errorMsg = 'Too many messages sent. Wait a few minutes and try again.';
-      } else {
-        errorMsg += ` Error: ${err.message || 'Unknown error'}`;
-      }
-
-      return NextResponse.json({ success: false, error: errorMsg });
+      const err = e as Error;
+      return NextResponse.json({ success: false, error: err.message || 'Failed to send message' });
     }
   } catch (error) {
     console.error('Telegram error:', error);

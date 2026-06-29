@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 interface DateRequest {
   _id: string;
   name?: string;
+  chatId?: number;
   date: string;
   time: string;
   food: string;
@@ -223,22 +224,16 @@ export default function AdminPage() {
   };
 
   const sendMessageNow = async (date: DateRequest) => {
-    if (!date.phone) {
-      setMessage('No phone number for this user');
+    if (!date.chatId) {
+      setMessage('No Telegram chat ID for this user. They need to open the app via t.me/mini_dating_bot first.');
       return;
     }
     try {
-      const statusRes = await fetch('/api/telegram/status');
-      const statusData = await statusRes.json();
-      if (!statusData.connected) {
-        setMessage('Userbot not connected! Please connect Telegram in the section above first.');
-        return;
-      }
       const res = await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: date.phone,
+          chatId: date.chatId,
           date: date.date,
           time: date.time,
           food: date.food,
@@ -331,12 +326,15 @@ export default function AdminPage() {
         <div className="glass-card rounded-3xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              🤖 Telegram Bot {telegramConnected ? '✅ Connected' : '❌ Not Connected'}
+              🤖 Telegram Bot {telegramConnected ? '✅ Connected' : '⚡ Bot API Active'}
             </h2>
           </div>
 
           {step === 'done' ? (
-            <p className="text-green-600">Telegram userbot is active and connected!</p>
+            <div className="space-y-2">
+              <p className="text-green-600">Telegram userbot is active and connected!</p>
+              <p className="text-sm text-gray-500">Messages are sent via Bot API (no userbot needed for messaging).</p>
+            </div>
           ) : (
             <div className="space-y-3">
               <div className="flex gap-2">
@@ -535,11 +533,11 @@ export default function AdminPage() {
                             >
                               ✏️
                             </button>
-                            {date.phone && (
+                            {date.chatId && (
                               <button
                                 onClick={() => sendMessageNow(date)}
                                 className="text-green-600 hover:text-green-800 mr-2"
-                                title="Message Now"
+                                title="Message Now (Bot API)"
                               >
                                 💬
                               </button>

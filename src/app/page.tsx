@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import DateTimePicker from '@/components/DateTimePicker';
 import FoodPicker from '@/components/FoodPicker';
@@ -9,14 +9,51 @@ import ConfirmationScreen from '@/components/ConfirmationScreen';
 import RejectionScreen from '@/components/RejectionScreen';
 import { Screen, FormData } from '@/types';
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name?: string;
+            last_name?: string;
+            username?: string;
+          };
+        };
+        ready: () => void;
+        close: () => void;
+      };
+    };
+  }
+}
+
+function getTelegramUser(): { id: number; name?: string } | null {
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
+    const u = window.Telegram.WebApp.initDataUnsafe.user;
+    return { id: u.id, name: u.first_name || u.username };
+  }
+  return null;
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>('welcome');
+  const [tgUser, setTgUser] = useState<{ id: number; name?: string } | null>(null);
   const [formData, setFormData] = useState<FormData>({
     date: null,
     time: '',
     food: '',
     status: 'accepted',
   });
+
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      const user = getTelegramUser();
+      if (user) setTgUser(user);
+    }
+  }, []);
 
   const handleYes = () => {
     setFormData((prev) => ({ ...prev, status: 'accepted' }));
@@ -58,18 +95,18 @@ export default function Home() {
       status: 'accepted',
     });
 
-    if (phone) {
-      sendTelegramConfirmation(phone, updatedFormData);
+    if (tgUser?.id) {
+      sendTelegramConfirmation(tgUser.id, updatedFormData);
     }
   };
 
-  const sendTelegramConfirmation = async (phone: string, data: FormData) => {
+  const sendTelegramConfirmation = async (chatId: number, data: FormData) => {
     try {
       await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone,
+          chatId,
           date: data.date,
           time: data.time,
           food: data.food,
@@ -86,7 +123,11 @@ export default function Home() {
       await fetch('/api/dates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          chatId: tgUser?.id,
+          name: tgUser?.name,
+        }),
       });
     } catch (error) {
       console.error('Error saving date:', error);

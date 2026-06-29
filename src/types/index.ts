@@ -1,6 +1,7 @@
 export interface DateRequest {
   _id?: string;
   name?: string;
+  chatId?: number;
   date: Date;
   time: string;
   food: string;
