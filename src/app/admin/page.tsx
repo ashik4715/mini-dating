@@ -164,7 +164,17 @@ export default function AdminPage() {
   };
 
   const sendMessageNow = async (date: DateRequest) => {
+    if (!date.phone) {
+      setMessage('No phone number for this user');
+      return;
+    }
     try {
+      const statusRes = await fetch('/api/telegram/status');
+      const statusData = await statusRes.json();
+      if (!statusData.connected) {
+        setMessage('Userbot not connected! Please connect Telegram in the section above first.');
+        return;
+      }
       const res = await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,10 +190,11 @@ export default function AdminPage() {
       if (data.success) {
         setMessage('Message sent! ✅');
       } else {
-        setMessage(data.needsBotStart ? 'User must start the bot first: t.me/mini_dating_bot' : (data.error || 'Failed'));
+        setMessage(data.error || 'Failed');
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessage('Network error');
     }
   };
 

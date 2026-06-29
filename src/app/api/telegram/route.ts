@@ -48,11 +48,25 @@ export async function POST(request: Request) {
     try {
       await sendTelegramMessage(phone.replace('+', ''), message);
       return NextResponse.json({ success: true });
-    } catch {
-      return NextResponse.json({
-        success: false,
-        error: 'Could not send message. User might have privacy settings blocking non-contacts.',
-      });
+    } catch (e: unknown) {
+      const err = e as Error & { errorMessage?: string };
+      let errorMsg = 'Could not send message.';
+
+      if (err.message?.includes('USER_PRIVACY_RESTRICTED') || err.message?.includes('SendPrivate')) {
+        errorMsg = 'Recipient has privacy settings blocking non-contacts. Ask them to change: Telegram → Settings → Privacy → Messages → Allow from Everybody.';
+      } else if (err.message?.includes('USER_IS_BLOCKED') || err.message?.includes('UserBlocked')) {
+        errorMsg = 'User has blocked this account.';
+      } else if (err.message?.includes('USER_NOT_PARTICIPANT')) {
+        errorMsg = 'User has restricted who can send them messages.';
+      } else if (err.message?.includes('Session') || err.message?.includes('session')) {
+        errorMsg = 'Userbot session expired. Please re-connect in Admin → Telegram Bot section.';
+      } else if (err.message?.includes('FLOOD')) {
+        errorMsg = 'Too many messages sent. Wait a few minutes and try again.';
+      } else {
+        errorMsg += ` Error: ${err.message || 'Unknown error'}`;
+      }
+
+      return NextResponse.json({ success: false, error: errorMsg });
     }
   } catch (error) {
     console.error('Telegram error:', error);
