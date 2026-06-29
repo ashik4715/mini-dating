@@ -77,6 +77,7 @@ export default function AdminPage() {
 
   const handleSendCode = async () => {
     setTgLoading(true);
+    setSetupCode('');
     try {
       const res = await fetch('/api/telegram/setup', {
         method: 'POST',
@@ -112,6 +113,11 @@ export default function AdminPage() {
         setMessage('Telegram connected!');
       } else {
         setMessage(data.error);
+        if (data.error?.toLowerCase().includes('expired')) {
+          setSetupCode('');
+          setCodeHash('');
+          setStep('idle');
+        }
       }
     } catch {
       setMessage('Verification failed');
@@ -278,39 +284,44 @@ export default function AdminPage() {
 
           {step === 'done' ? (
             <p className="text-green-600">Telegram userbot is active and connected!</p>
-          ) : step === 'sent' ? (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={setupCode}
-                onChange={(e) => setSetupCode(e.target.value)}
-                placeholder="Enter code from Telegram"
-                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
-              />
-              <button
-                onClick={handleVerifyCode}
-                disabled={tgLoading || !setupCode}
-                className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50"
-              >
-                {tgLoading ? '...' : 'Verify'}
-              </button>
-            </div>
           ) : (
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                value={setupPhone}
-                onChange={(e) => setSetupPhone(e.target.value)}
-                placeholder="Your phone: +8801677280569"
-                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
-              />
-              <button
-                onClick={handleSendCode}
-                disabled={tgLoading || !setupPhone}
-                className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50"
-              >
-                {tgLoading ? '...' : 'Send Code'}
-              </button>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={setupPhone}
+                  onChange={(e) => setSetupPhone(e.target.value)}
+                  placeholder="Your phone: +8801677280569"
+                  disabled={step === 'sent'}
+                  className={`flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none ${step === 'sent' ? 'bg-gray-50 text-gray-500' : ''}`}
+                />
+                <button
+                  onClick={handleSendCode}
+                  disabled={tgLoading || !setupPhone}
+                  className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                >
+                  {tgLoading ? '...' : step === 'sent' ? 'Resend' : 'Send Code'}
+                </button>
+              </div>
+              {step === 'sent' && (
+                <div className="flex gap-2 animate-[fadeIn_0.3s_ease-in]">
+                  <input
+                    type="text"
+                    value={setupCode}
+                    onChange={(e) => setSetupCode(e.target.value)}
+                    placeholder="Enter code from Telegram"
+                    className="flex-1 px-4 py-2 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleVerifyCode}
+                    disabled={tgLoading || !setupCode}
+                    className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {tgLoading ? '...' : 'Verify'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

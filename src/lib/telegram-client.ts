@@ -42,7 +42,7 @@ export async function sendCode(phone: string): Promise<string> {
   const client = new TelegramClient(new StringSession(''), apiId, apiHash, {});
   await client.connect();
 
-  const result = await client.invoke(
+  const { phoneCodeHash } = await client.invoke(
     new Api.auth.SendCode({
       phoneNumber: phone,
       apiId,
@@ -51,7 +51,14 @@ export async function sendCode(phone: string): Promise<string> {
     })
   ) as { phoneCodeHash: string };
 
-  return result.phoneCodeHash;
+  const db = await getDatabase();
+  await db.collection('telegram_sessions').updateOne(
+    { key: 'setup_pending' },
+    { $set: { key: 'setup_pending', phone, phoneCodeHash, createdAt: new Date() } },
+    { upsert: true }
+  );
+
+  return phoneCodeHash;
 }
 
 export async function verifyCode(phone: string, code: string, phoneCodeHash: string): Promise<string> {
@@ -66,22 +73,50 @@ export async function verifyCode(phone: string, code: string, phoneCodeHash: str
         phoneCode: code,
       })
     );
-    return client.session.save() as unknown as string;
+    const session = client.session.save() as unknown as string;
+
+    const db = await getDatabase();
+    await db.collection('telegram_sessions').deleteOne({ key: 'setup_pending' });
+
+    return session;
   } catch (e: unknown) {
     const err = e as Error & { errorMessage?: string };
     if (err.errorMessage === 'SESSION_PASSWORD_NEEDED') {
-      throw new Error('2FA enabled. Password required.');
+      const session = client.session.save() as unknown as string;
+
+      const db = await getDatabase();
+      await db.collection('telegram_sessions').updateOne(
+        { key: 'setup_pending' },
+        { $set: { key: 'setup_pending', session, phone, phoneCodeHash, needs2FA: true, createdAt: new Date() } },
+        { upsert: true }
+      );
+
+      throw new Error('2FA_ENABLED');
     }
     if (err.errorMessage?.includes('PHONE_CODE_INVALID')) {
       throw new Error('Invalid code. Please try again.');
+    }
+    if (err.errorMessage?.includes('PHONE_CODE_EXPIRED')) {
+      throw new Error('Code expired. Click "Resend" to get a new one.');
     }
     if (err.errorMessage?.includes('FLOOD_WAIT')) {
       const match = err.errorMessage.match(/FLOOD_WAIT_(\d+)/);
       const secs = match ? parseInt(match[1]) : 60;
       throw new Error(`Too many attempts. Wait ${secs} seconds.`);
     }
-    throw err;
+    throw new Error(err.message || 'Verification failed');
   }
+}
+
+export async function getStoredSetupData(): Promise<{ phone: string; phoneCodeHash: string } | null> {
+  try {
+    const db = await getDatabase();
+    const doc = await db.collection('telegram_sessions').findOne({ key: 'setup_pending' });
+    if (doc) {
+      return { phone: doc.phone, phoneCodeHash: doc.phoneCodeHash };
+    }
+  } catch {}
+  return null;
 }
 
 export async function saveSession(session: string): Promise<void> {
