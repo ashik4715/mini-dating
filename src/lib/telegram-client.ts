@@ -244,16 +244,34 @@ export async function sendTelegramMessage(phone: string, message: string): Promi
     const resolved = await client.invoke(
       new Api.contacts.ResolvePhone({ phone })
     );
-    const entity = resolved.users[0];
-    if (!entity) {
-      throw new Error('Could not resolve phone number. User may not have Telegram or privacy settings block contacts.');
+
+    const user = resolved.users[0];
+    if (!user || !('id' in user)) {
+      throw new Error('Could not resolve phone number on Telegram.');
     }
-    await client.sendMessage(entity, { message });
+
+    const inputPeer = new Api.InputPeerUser({
+      userId: (user as any).id,
+      accessHash: (user as any).accessHash,
+    });
+
+    await client.sendMessage(inputPeer, { message });
     return true;
   } catch (e: unknown) {
-    const err = e as Error;
-    if (err.message?.includes('PHONE_NOT_OCCUPIED')) {
+    const err = e as Error & { errorMessage?: string };
+    if (err.errorMessage === 'PHONE_NOT_OCCUPIED') {
       throw new Error('This phone number is not registered on Telegram.');
+    }
+    if (err.errorMessage === 'USER_PRIVACY_RESTRICTED') {
+      throw new Error('Recipient has privacy settings blocking non-contacts. Ask them to change: Telegram → Settings → Privacy → Messages → Allow from Everybody.');
+    }
+    if (err.errorMessage === 'USER_IS_BLOCKED') {
+      throw new Error('User has blocked this account.');
+    }
+    if (err.errorMessage?.includes('FLOOD_WAIT')) {
+      const match = err.errorMessage.match(/FLOOD_WAIT_(\d+)/);
+      const secs = match ? parseInt(match[1]) : 60;
+      throw new Error(`Too many messages. Wait ${secs} seconds.`);
     }
     throw new Error(err.message || 'Failed to send message');
   }
