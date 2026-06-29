@@ -24,6 +24,12 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState<Partial<DateRequest>>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [telegramConnected, setTelegramConnected] = useState(false);
+  const [setupPhone, setSetupPhone] = useState('');
+  const [setupCode, setSetupCode] = useState('');
+  const [codeHash, setCodeHash] = useState('');
+  const [step, setStep] = useState<'idle' | 'sent' | 'done'>('idle');
+  const [tgLoading, setTgLoading] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +53,70 @@ export default function AdminPage() {
       console.error('Error fetching dates:', error);
     }
     setLoading(false);
+  };
+
+  const checkTelegramStatus = async () => {
+    try {
+      const res = await fetch('/api/telegram/status');
+      const data = await res.json();
+      if (data.success && data.connected) {
+        setTelegramConnected(true);
+        setStep('done');
+      }
+    } catch {
+      setTelegramConnected(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchDates();
+      checkTelegramStatus();
+    }
+  }, [isLoggedIn]);
+
+  const handleSendCode = async () => {
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/telegram/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: setupPhone }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCodeHash(data.phoneCodeHash);
+        setStep('sent');
+        setMessage('Code sent to Telegram!');
+      } else {
+        setMessage(data.error);
+      }
+    } catch {
+      setMessage('Failed to send code');
+    }
+    setTgLoading(false);
+  };
+
+  const handleVerifyCode = async () => {
+    setTgLoading(true);
+    try {
+      const res = await fetch('/api/telegram/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: setupPhone, code: setupCode, phoneCodeHash: codeHash }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTelegramConnected(true);
+        setStep('done');
+        setMessage('Telegram connected!');
+      } else {
+        setMessage(data.error);
+      }
+    } catch {
+      setMessage('Verification failed');
+    }
+    setTgLoading(false);
   };
 
   const handleEdit = (date: DateRequest) => {
@@ -187,6 +257,52 @@ export default function AdminPage() {
             <button onClick={() => setMessage('')} className="ml-2 font-bold">×</button>
           </div>
         )}
+
+        <div className="glass-card rounded-3xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              🤖 Telegram Bot {telegramConnected ? '✅ Connected' : '❌ Not Connected'}
+            </h2>
+          </div>
+
+          {step === 'done' ? (
+            <p className="text-green-600">Telegram userbot is active and connected!</p>
+          ) : step === 'sent' ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={setupCode}
+                onChange={(e) => setSetupCode(e.target.value)}
+                placeholder="Enter code from Telegram"
+                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
+              />
+              <button
+                onClick={handleVerifyCode}
+                disabled={tgLoading || !setupCode}
+                className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50"
+              >
+                {tgLoading ? '...' : 'Verify'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                value={setupPhone}
+                onChange={(e) => setSetupPhone(e.target.value)}
+                placeholder="Your phone: +8801677280569"
+                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
+              />
+              <button
+                onClick={handleSendCode}
+                disabled={tgLoading || !setupPhone}
+                className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50"
+              >
+                {tgLoading ? '...' : 'Send Code'}
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="glass-card rounded-3xl p-6">
           <div className="flex justify-between items-center mb-4">
