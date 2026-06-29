@@ -225,7 +225,7 @@ export default function AdminPage() {
 
   const sendMessageNow = async (date: DateRequest) => {
     if (!date.chatId) {
-      setMessage('No Telegram chat ID for this user. They need to open the app via t.me/mini_dating_bot first.');
+      setMessage('No Telegram chat ID for this user. They must open the app via t.me/mini_dating_bot first.');
       return;
     }
     try {
@@ -433,6 +433,7 @@ export default function AdminPage() {
                     <th className="text-left py-3 px-2">Time</th>
                     <th className="text-left py-3 px-2">Food</th>
                     <th className="text-left py-3 px-2">Phone</th>
+                    <th className="text-left py-3 px-2">Chat ID</th>
                     <th className="text-left py-3 px-2">Status</th>
                     <th className="text-left py-3 px-2">Reminder</th>
                     <th className="text-left py-3 px-2">Actions</th>
@@ -517,6 +518,13 @@ export default function AdminPage() {
                           <td className="py-3 px-2">{date.food}</td>
                           <td className="py-3 px-2">{date.phone || '-'}</td>
                           <td className="py-3 px-2">
+                            {date.chatId ? (
+                              <span className="text-xs text-green-600 font-mono">{date.chatId}</span>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-2">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               date.status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                             }`}>
@@ -533,15 +541,16 @@ export default function AdminPage() {
                             >
                               ✏️
                             </button>
-                            {date.chatId && (
-                              <button
-                                onClick={() => sendMessageNow(date)}
-                                className="text-green-600 hover:text-green-800 mr-2"
-                                title="Message Now (Bot API)"
-                              >
-                                💬
-                              </button>
-                            )}
+                            <button
+                              onClick={() => date.chatId && sendMessageNow(date)}
+                              className={`mr-2 ${date.chatId ? 'text-[#0088cc] hover:text-[#0077b5]' : 'text-gray-300 cursor-not-allowed'}`}
+                              title={date.chatId ? 'Message via Telegram Bot' : 'No chat ID - user must open app via t.me/mini_dating_bot'}
+                              disabled={!date.chatId}
+                            >
+                              <svg className="w-5 h-5 inline-block" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.679-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                              </svg>
+                            </button>
                             <button
                               onClick={() => handleDelete(date._id)}
                               className="text-red-600 hover:text-red-800"
