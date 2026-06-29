@@ -1,30 +1,18 @@
 import { NextResponse } from 'next/server';
-import { verifyCode, saveSession, getStoredSetupData } from '@/lib/telegram-client';
+import { verifyCode } from '@/lib/telegram-client';
 
 export async function POST(request: Request) {
   try {
-    const { phone, code, phoneCodeHash } = await request.json();
+    const { code } = await request.json();
 
-    let resolvedPhone = phone;
-    let resolvedHash = phoneCodeHash;
-
-    if (!resolvedHash) {
-      const stored = await getStoredSetupData();
-      if (stored) {
-        resolvedPhone = resolvedPhone || stored.phone;
-        resolvedHash = stored.phoneCodeHash;
-      }
-    }
-
-    if (!resolvedPhone || !code || !resolvedHash) {
+    if (!code) {
       return NextResponse.json(
-        { success: false, error: 'Phone, code, and hash required' },
+        { success: false, error: 'Verification code required' },
         { status: 400 }
       );
     }
 
-    const session = await verifyCode(resolvedPhone, code, resolvedHash);
-    await saveSession(session);
+    await verifyCode('', code);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface DateRequest {
   _id: string;
@@ -27,9 +27,31 @@ export default function AdminPage() {
   const [telegramConnected, setTelegramConnected] = useState(false);
   const [setupPhone, setSetupPhone] = useState('');
   const [setupCode, setSetupCode] = useState('');
-  const [codeHash, setCodeHash] = useState('');
   const [step, setStep] = useState<'idle' | 'sent' | 'done'>('idle');
   const [tgLoading, setTgLoading] = useState(false);
+  const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    if (!codeExpiry) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((codeExpiry - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        setCodeExpiry(null);
+        setStep('idle');
+        setSetupCode('');
+        setMessage('Code expired. Click "Send Code" to get a new one.');
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [codeExpiry]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +108,9 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setCodeHash(data.phoneCodeHash);
         setStep('sent');
+        setCodeExpiry(data.expiresAt || Date.now() + 120000);
+        setTimeLeft(120);
         setMessage('Code sent to Telegram!');
       } else {
         setMessage(data.error);
@@ -104,18 +127,19 @@ export default function AdminPage() {
       const res = await fetch('/api/telegram/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: setupPhone, code: setupCode, phoneCodeHash: codeHash }),
+        body: JSON.stringify({ code: setupCode }),
       });
       const data = await res.json();
       if (data.success) {
         setTelegramConnected(true);
         setStep('done');
+        setCodeExpiry(null);
         setMessage('Telegram connected!');
       } else {
         setMessage(data.error);
         if (data.error?.toLowerCase().includes('expired')) {
           setSetupCode('');
-          setCodeHash('');
+          setCodeExpiry(null);
           setStep('idle');
         }
       }
@@ -304,22 +328,29 @@ export default function AdminPage() {
                 </button>
               </div>
               {step === 'sent' && (
-                <div className="flex gap-2 animate-[fadeIn_0.3s_ease-in]">
-                  <input
-                    type="text"
-                    value={setupCode}
-                    onChange={(e) => setSetupCode(e.target.value)}
-                    placeholder="Enter code from Telegram"
-                    className="flex-1 px-4 py-2 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleVerifyCode}
-                    disabled={tgLoading || !setupCode}
-                    className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {tgLoading ? '...' : 'Verify'}
-                  </button>
+                <div className="space-y-2 animate-[fadeIn_0.3s_ease-in]">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={setupCode}
+                      onChange={(e) => setSetupCode(e.target.value)}
+                      placeholder="Enter code from Telegram"
+                      className="flex-1 px-4 py-2 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleVerifyCode}
+                      disabled={tgLoading || !setupCode}
+                      className="btn-pink text-white font-semibold px-6 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {tgLoading ? '...' : 'Verify'}
+                    </button>
+                  </div>
+                  {timeLeft > 0 && (
+                    <p className={`text-sm font-medium ${timeLeft <= 30 ? 'text-red-500' : 'text-gray-500'}`}>
+                      Code expires in {formatTime(timeLeft)}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

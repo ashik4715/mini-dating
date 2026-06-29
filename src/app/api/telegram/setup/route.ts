@@ -19,11 +19,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const phoneCodeHash = await sendCode(phone);
+    const { phoneCodeHash, expiresAt } = await sendCode(phone);
 
     return NextResponse.json({
       success: true,
       phoneCodeHash,
+      expiresAt,
       message: 'Code sent to your Telegram!',
     });
   } catch (e: unknown) {
