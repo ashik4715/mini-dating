@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install Dependencies
@@ -27,12 +27,13 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel
 
-      - name: Debug Token
-        run: echo "Token length is ${#VERCEL_TOKEN}"
+      - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel --yes --prod --token "$VERCEL_TOKEN"
+        run: |
+          echo "Token length: ${#VERCEL_TOKEN}"
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "ERROR: VERCEL_TOKEN is empty!"
+            exit 1
+          fi
+          vercel --yes --prod --token "$VERCEL_TOKEN"
