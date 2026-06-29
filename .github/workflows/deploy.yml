@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Dependencies
@@ -28,4 +30,4 @@ jobs:
         run: npm install --global vercel
 
       - name: Deploy
-        run: vercel --yes --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel --yes --prod --token "$VERCEL_TOKEN"
