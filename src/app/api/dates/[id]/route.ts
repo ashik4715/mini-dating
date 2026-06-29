@@ -26,6 +26,7 @@ export async function PUT(
     if (body.date !== undefined) updateData.date = new Date(body.date);
     if (body.time !== undefined) updateData.time = body.time;
     if (body.reminderMinutes !== undefined) updateData.reminderMinutes = body.reminderMinutes;
+    if (body.chatId !== undefined) updateData.chatId = body.chatId ? Number(body.chatId) : null;
 
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },

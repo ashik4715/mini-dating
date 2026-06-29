@@ -145,7 +145,7 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <main className="dark:bg-gray-950 dark:text-gray-100 min-h-screen">
       {screen === 'welcome' && (
         <WelcomeScreen onYes={handleYes} onNo={handleNo} />
       )}

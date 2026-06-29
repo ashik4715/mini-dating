@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface DateRequest {
   _id: string;
@@ -187,6 +188,7 @@ export default function AdminPage() {
       date: date.date,
       time: date.time,
       reminderMinutes: date.reminderMinutes,
+      chatId: date.chatId || undefined,
     });
   };
 
@@ -254,37 +256,37 @@ export default function AdminPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-pink-50 to-white">
-        <div className="glass-card rounded-3xl p-8 max-w-md w-full">
-          <h1 className="font-serif text-3xl text-gray-800 text-center mb-6">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-pink-50 to-white dark:from-gray-900 dark:to-gray-950">
+        <div className="glass-card rounded-3xl p-8 max-w-md w-full dark:bg-gray-800/80">
+          <h1 className="font-serif text-3xl text-gray-800 dark:text-gray-100 text-center mb-6">
             🔒 Admin Login
           </h1>
 
           {message && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-red-600 text-sm">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-red-600 text-sm dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
               {message}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:focus:border-pink-500"
                 placeholder="admin@minidate.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:focus:border-pink-500"
                 placeholder="••••••••"
               />
             </div>
@@ -302,38 +304,41 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-pink-50 to-white">
+    <div className="min-h-screen p-4 bg-gradient-to-br from-pink-50 to-white dark:from-gray-900 dark:to-gray-950">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="font-serif text-3xl text-gray-800">
+          <h1 className="font-serif text-3xl text-gray-800 dark:text-gray-100">
             📊 Admin Dashboard
           </h1>
-          <button
-            onClick={() => setIsLoggedIn(false)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => setIsLoggedIn(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {message && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-green-600 text-sm">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-green-600 text-sm dark:bg-green-900/30 dark:border-green-800 dark:text-green-400">
             {message}
             <button onClick={() => setMessage('')} className="ml-2 font-bold">×</button>
           </div>
         )}
 
-        <div className="glass-card rounded-3xl p-6 mb-6">
+        <div className="glass-card rounded-3xl p-6 mb-6 dark:bg-gray-800/80">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold dark:text-gray-100">
               🤖 Telegram Bot {telegramConnected ? '✅ Connected' : '⚡ Bot API Active'}
             </h2>
           </div>
 
           {step === 'done' ? (
             <div className="space-y-2">
-              <p className="text-green-600">Telegram userbot is active and connected!</p>
-              <p className="text-sm text-gray-500">Messages are sent via Bot API (no userbot needed for messaging).</p>
+              <p className="text-green-600 dark:text-green-400">Telegram userbot is active and connected!</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Messages are sent via Bot API (no userbot needed for messaging).</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -344,7 +349,7 @@ export default function AdminPage() {
                   onChange={(e) => setSetupPhone(e.target.value)}
                   placeholder="Your phone: +8801677280569"
                   disabled={step === 'sent'}
-                  className={`flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none ${step === 'sent' ? 'bg-gray-50 text-gray-500' : ''}`}
+                  className={`flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:focus:border-pink-500 ${step === 'sent' ? 'bg-gray-50 text-gray-500 dark:bg-gray-600' : ''}`}
                 />
                 <button
                   onClick={handleSendCode}
@@ -387,7 +392,7 @@ export default function AdminPage() {
                       value={setupCode}
                       onChange={(e) => setSetupCode(e.target.value)}
                       placeholder="Enter code from Telegram"
-                      className="flex-1 px-4 py-2 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none"
+                      className="flex-1 px-4 py-2 border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:focus:border-pink-500"
                       autoFocus
                     />
                     <button
@@ -409,39 +414,39 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="glass-card rounded-3xl p-6">
+        <div className="glass-card rounded-3xl p-6 dark:bg-gray-800/80">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Date Requests ({dates.length})</h2>
+            <h2 className="text-xl font-semibold dark:text-gray-100">Date Requests ({dates.length})</h2>
             <button
               onClick={fetchDates}
-              className="px-4 py-2 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200"
+              className="px-4 py-2 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:hover:bg-pink-900/50"
             >
               Refresh
             </button>
           </div>
 
           {loading ? (
-            <p className="text-center py-8 text-gray-500">Loading...</p>
+            <p className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</p>
           ) : dates.length === 0 ? (
-            <p className="text-center py-8 text-gray-500">No date requests yet</p>
+            <p className="text-center py-8 text-gray-500 dark:text-gray-400">No date requests yet</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2">Date</th>
-                    <th className="text-left py-3 px-2">Time</th>
-                    <th className="text-left py-3 px-2">Food</th>
-                    <th className="text-left py-3 px-2">Phone</th>
-                    <th className="text-left py-3 px-2">Chat ID</th>
-                    <th className="text-left py-3 px-2">Status</th>
-                    <th className="text-left py-3 px-2">Reminder</th>
-                    <th className="text-left py-3 px-2">Actions</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Date</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Time</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Food</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Phone</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Chat ID</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Status</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Reminder</th>
+                    <th className="text-left py-3 px-2 dark:text-gray-300">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dates.map((date) => (
-                    <tr key={date._id} className="border-b border-gray-100 hover:bg-pink-50">
+                    <tr key={date._id} className="border-b border-gray-100 hover:bg-pink-50 dark:border-gray-700 dark:hover:bg-gray-800">
                       {editingId === date._id ? (
                         <>
                           <td className="py-3 px-2">
@@ -449,7 +454,7 @@ export default function AdminPage() {
                               type="date"
                               value={editForm.date?.toString().split('T')[0] || ''}
                               onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                              className="w-full px-2 py-1 border rounded"
+                              className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                             />
                           </td>
                           <td className="py-3 px-2">
@@ -457,14 +462,14 @@ export default function AdminPage() {
                               type="text"
                               value={editForm.time || ''}
                               onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
-                              className="w-full px-2 py-1 border rounded"
+                              className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                             />
                           </td>
                           <td className="py-3 px-2">
                             <select
                               value={editForm.food || ''}
                               onChange={(e) => setEditForm({ ...editForm, food: e.target.value })}
-                              className="w-full px-2 py-1 border rounded"
+                              className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                             >
                               <option value="Pizza">🍕 Pizza</option>
                               <option value="Sushi">🍣 Sushi</option>
@@ -479,8 +484,17 @@ export default function AdminPage() {
                               type="text"
                               value={editForm.phone || ''}
                               onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                              className="w-full px-2 py-1 border rounded"
+                              className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                               placeholder="+880..."
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input
+                              type="text"
+                              value={editForm.chatId || ''}
+                              onChange={(e) => setEditForm({ ...editForm, chatId: e.target.value ? Number(e.target.value) : undefined })}
+                              className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+                              placeholder="Telegram chat ID"
                             />
                           </td>
                           <td className="py-3 px-2">
@@ -488,22 +502,22 @@ export default function AdminPage() {
                               type="number"
                               value={editForm.reminderMinutes || 30}
                               onChange={(e) => setEditForm({ ...editForm, reminderMinutes: parseInt(e.target.value) })}
-                              className="w-20 px-2 py-1 border rounded"
+                              className="w-20 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                             />
                           </td>
                           <td className="py-3 px-2">
-                            <span className="text-gray-500">min</span>
+                            <span className="text-gray-500 dark:text-gray-400">min</span>
                           </td>
                           <td className="py-3 px-2">
                             <button
                               onClick={() => handleSave(date._id)}
-                              className="text-green-600 hover:text-green-800 mr-2"
+                              className="text-green-600 hover:text-green-800 mr-2 dark:text-green-400 dark:hover:text-green-300"
                             >
                               ✓ Save
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="text-gray-500 hover:text-gray-700"
+                              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             >
                               ✕
                             </button>
@@ -537,23 +551,21 @@ export default function AdminPage() {
                           <td className="py-3 px-2">
                             <button
                               onClick={() => handleEdit(date)}
-                              className="text-blue-600 hover:text-blue-800 mr-2"
+                              className="text-blue-600 hover:text-blue-800 mr-2 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               ✏️
                             </button>
                             <button
                               onClick={() => date.chatId && sendMessageNow(date)}
-                              className={`mr-2 ${date.chatId ? 'text-[#0088cc] hover:text-[#0077b5]' : 'text-gray-300 cursor-not-allowed'}`}
+                              className={`mr-2 ${date.chatId ? 'text-[#0088cc] hover:text-[#0077b5]' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                               title={date.chatId ? 'Message via Telegram Bot' : 'No chat ID - user must open app via t.me/mini_dating_bot'}
                               disabled={!date.chatId}
                             >
-                              <svg className="w-5 h-5 inline-block" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.679-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                              </svg>
+                              <i className="fab fa-telegram-plane text-lg"></i>
                             </button>
                             <button
                               onClick={() => handleDelete(date._id)}
-                              className="text-red-600 hover:text-red-800"
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                             >
                               🗑️
                             </button>

@@ -126,3 +126,34 @@ body {
     transform: translateX(0);
   }
 }
+
+/* Dark mode overrides */
+.dark .glass-card {
+  background: rgba(30, 30, 30, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dark body {
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+.dark .time-slot:hover {
+  background: #1e293b;
+}
+
+.dark .time-slot.selected {
+  background: #1e293b;
+}
+
+.dark .food-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dark .food-item.selected {
+  background: #1e293b;
+}
+
+.dark .calendar-day:hover:not(.disabled) {
+  background: #1e293b;
+}
