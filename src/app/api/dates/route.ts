@@ -5,7 +5,7 @@ import { DateRequest } from '@/types';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, date, time, food, status } = body;
+    const { name, date, time, food, phone, status } = body;
 
     if (!date || !time || !food || !status) {
       return NextResponse.json(
@@ -22,7 +22,10 @@ export async function POST(request: Request) {
       date: new Date(date),
       time,
       food,
+      phone: phone || undefined,
       status,
+      reminderMinutes: 30,
+      reminderSent: false,
       createdAt: new Date(),
     };
 

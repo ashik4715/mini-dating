@@ -4,7 +4,10 @@ export interface DateRequest {
   date: Date;
   time: string;
   food: string;
+  phone?: string;
   status: 'accepted' | 'rejected';
+  reminderMinutes: number;
+  reminderSent: boolean;
   createdAt?: Date;
 }
 
@@ -13,7 +16,8 @@ export interface FormData {
   date: Date | null;
   time: string;
   food: string;
+  phone?: string;
   status: 'accepted' | 'rejected';
 }
 
-export type Screen = 'welcome' | 'datetime' | 'food' | 'confirmation' | 'rejection';
+export type Screen = 'welcome' | 'datetime' | 'food' | 'phone' | 'confirmation' | 'rejection';

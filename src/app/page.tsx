@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import DateTimePicker from '@/components/DateTimePicker';
 import FoodPicker from '@/components/FoodPicker';
+import PhoneInput from '@/components/PhoneInput';
 import ConfirmationScreen from '@/components/ConfirmationScreen';
 import RejectionScreen from '@/components/RejectionScreen';
 import { Screen, FormData } from '@/types';
@@ -26,7 +27,6 @@ export default function Home() {
     setFormData((prev) => ({ ...prev, status: 'rejected' }));
     setScreen('rejection');
 
-    // Save rejected date to MongoDB
     saveDate({
       date: new Date(),
       time: '',
@@ -40,27 +40,52 @@ export default function Home() {
     setScreen('food');
   };
 
-  const handleFoodConfirm = async (food: string) => {
-    const updatedFormData = { ...formData, food };
+  const handleFoodConfirm = (food: string) => {
+    setFormData((prev) => ({ ...prev, food }));
+    setScreen('phone');
+  };
+
+  const handlePhoneConfirm = async (phone: string | null) => {
+    const updatedFormData = { ...formData, phone: phone || undefined };
     setFormData(updatedFormData);
     setScreen('confirmation');
 
-    // Save accepted date to MongoDB
     await saveDate({
       date: updatedFormData.date!,
       time: updatedFormData.time,
-      food,
+      food: updatedFormData.food,
+      phone: phone || undefined,
       status: 'accepted',
     });
+
+    if (phone) {
+      sendTelegramConfirmation(phone, updatedFormData);
+    }
+  };
+
+  const sendTelegramConfirmation = async (phone: string, data: FormData) => {
+    try {
+      await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          date: data.date,
+          time: data.time,
+          food: data.food,
+          type: 'confirmation',
+        }),
+      });
+    } catch (error) {
+      console.error('Error sending Telegram:', error);
+    }
   };
 
   const saveDate = async (data: Partial<FormData>) => {
     try {
       await fetch('/api/dates', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
     } catch (error) {
@@ -95,6 +120,13 @@ export default function Home() {
         <FoodPicker
           onConfirm={handleFoodConfirm}
           onBack={() => setScreen('datetime')}
+        />
+      )}
+
+      {screen === 'phone' && (
+        <PhoneInput
+          onConfirm={handlePhoneConfirm}
+          onBack={() => setScreen('food')}
         />
       )}
 
