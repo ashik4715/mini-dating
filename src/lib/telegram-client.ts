@@ -237,6 +237,35 @@ export async function getUserbotStatus(): Promise<{ connected: boolean; phone?: 
   }
 }
 
+export async function resolvePhoneToChatId(phone: string): Promise<number | null> {
+  try {
+    const db = await getDatabase();
+    const sessionDoc = await db.collection('telegram_sessions').findOne({ key: 'userbot' });
+    if (!sessionDoc?.session) return null;
+
+    const client = new TelegramClient(new StringSession(sessionDoc.session), apiId, apiHash, {});
+    await client.connect();
+
+    try {
+      const cleanPhone = phone.replace(/^\+/, '');
+      const resolved = await client.invoke(
+        new Api.contacts.ResolvePhone({ phone: cleanPhone })
+      );
+      const user = resolved.users[0] as { id?: { toJSNumber?: () => number } | number; accessHash?: unknown };
+      if (!user || !user.id) return null;
+
+      const chatId = typeof user.id === 'number'
+        ? user.id
+        : (user.id.toJSNumber ? user.id.toJSNumber() : Number(user.id));
+      return chatId;
+    } finally {
+      client.disconnect();
+    }
+  } catch {
+    return null;
+  }
+}
+
 export async function sendTelegramMessage(phone: string, message: string): Promise<boolean> {
   const client = await getClient();
 
